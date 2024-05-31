@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def run_java(java_class, packages: list = None):
+def run_java(java_class, packages: list = None, input_file: str = None) -> tuple:
     command = "java "
     if packages is not None:
         package_str = "-cp "
@@ -10,8 +10,20 @@ def run_java(java_class, packages: list = None):
             package_str += str(package).strip() + "/"
         command += package_str[:-1] + " "
     command += java_class
+    input_data = None
+    if input_file:
+        with open(input_file) as fp:
+            input_data = fp.read()
 
-    subprocess.run(command, shell=True)
+    result = subprocess.run(
+        command,
+        shell=True,
+        capture_output=True,
+        text=True,
+        input=input_data
+    )
+
+    return result.stdout.strip(), result.stderr.strip()
 
 
 if __name__ == '__main__':
@@ -31,15 +43,24 @@ if __name__ == '__main__':
     if create:
         if test_packages:
             os.makedirs(os.path.dirname(test_file), exist_ok=True)
-        with open(test_file, "w") as f:
-            f.write("""
+        with open(test_file, "w") as fp:
+            fp.write("""
+            import java.util.Scanner;
+            
             public class Main {
                 public static void main(String[] args) {
                     System.out.println("Hello World!");
+                    Scanner scanner = new Scanner(System.in);
+                    System.out.println(scanner.nextLine());
+                    System.out.println(scanner.nextLine());
+                    System.out.println(scanner.nextLine());
+                    // throw new RuntimeException();
                 }
             }
             """)
     subprocess.run(f"javac {test_file}", shell=True)
-    run_java(test_classname, test_packages)
+    result = run_java(test_classname, packages=test_packages, input_file="test_input.txt")
+    print("stdout: " + result[0])
+    print("stderr: " + result[1])
     os.remove(test_classfile)
     os.remove(test_file)
