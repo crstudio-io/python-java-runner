@@ -2,14 +2,15 @@ import os
 import subprocess
 
 
-def run_java(java_class, packages: list = None, input_file: str = None) -> tuple:
+def run_java(java_class: str, classpath: list = None, input_file: str = None) -> tuple:
     command = "java "
-    if packages is not None:
-        package_str = "-cp "
-        for package in packages:
-            package_str += str(package).strip() + "/"
-        command += package_str[:-1] + " "
+    if classpath is not None:
+        classpath_str = "-cp "
+        for path in classpath:
+            classpath_str += str(path).strip() + "/"
+        command += classpath_str[:-1] + " "
     command += java_class
+    print(command)
     input_data = None
     if input_file:
         with open(input_file) as fp:
@@ -28,7 +29,7 @@ def run_java(java_class, packages: list = None, input_file: str = None) -> tuple
 
 if __name__ == '__main__':
     create = True
-    test_file = "Main.java"
+    test_file = "0/Main.java"
     test_classfile = os.path.splitext(test_file)[0] + ".class"
     test_packages = test_file.split("/")[:-1] if "/" in test_file else None
     test_classname = test_classfile.split(".")[0]
@@ -59,7 +60,7 @@ if __name__ == '__main__':
             }
             """)
     subprocess.run(f"javac {test_file}", shell=True)
-    result = run_java(test_classname, packages=test_packages, input_file="test_input.txt")
+    result = run_java(test_classname, classpath=test_packages, input_file="test_input.txt")
     print("stdout: " + result[0])
     print("stderr: " + result[1])
     os.remove(test_classfile)
