@@ -2,14 +2,16 @@ import os
 import subprocess
 
 
-def run_java(java_class, packages: list = None):
-    command = "java "
+def compile_java(java_fname, packages: list = None):
+    command = "javac "
     if packages is not None:
-        package_str = "-cp "
+        package_str = ""
         for package in packages:
             package_str += str(package).strip() + "/"
-        command += package_str[:-1] + " "
-    command += java_class
+        command += package_str
+
+    command += java_fname
+    print(command)
 
     subprocess.run(command, shell=True)
 
@@ -17,16 +19,13 @@ def run_java(java_class, packages: list = None):
 if __name__ == '__main__':
     create = True
     test_file = "Main.java"
+    test_javafile = os.path.basename(test_file)
     test_classfile = os.path.splitext(test_file)[0] + ".class"
     test_packages = test_file.split("/")[:-1] if "/" in test_file else None
-    test_classname = test_classfile.split(".")[0]
-    if test_packages:
-        test_classname = test_classname.split("/")[-1]
 
     print(test_file)
-    print(test_packages)
     print(test_classfile)
-    print(test_classname)
+    print(test_packages)
 
     if create:
         if test_packages:
@@ -39,7 +38,8 @@ if __name__ == '__main__':
                 }
             }
             """)
-    subprocess.run(f"javac {test_file}", shell=True)
-    run_java(test_classname, test_packages)
+
+    compile_java(test_javafile, test_packages)
+    print(os.path.exists(test_classfile))
     os.remove(test_classfile)
     os.remove(test_file)
