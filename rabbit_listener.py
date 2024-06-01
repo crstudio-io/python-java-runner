@@ -9,14 +9,14 @@ from runner import run_java
 def callback(ch, method, properties, body):
     print("decode message to json")
     payload = json.loads(body)
-    entity_id = payload["id"]
-    question_id = payload["qid"]
+    solution_id = payload["id"]
+    problem_id = payload["pid"]
     code_payload = payload["code"]
 
     print("save code for compilation")
-    java_file = f"{entity_id}/Main.java"
+    java_file = f"{solution_id}/Main.java"
     os.makedirs(os.path.dirname(java_file), exist_ok=True)
-    with open(f"{entity_id}/Main.java", "w") as fp:
+    with open(f"{solution_id}/Main.java", "w") as fp:
         fp.writelines(code_payload)
 
     print("compile java")
@@ -24,12 +24,8 @@ def callback(ch, method, properties, body):
     print(compile_result[0])
 
     print("run class")
-    run_result = run_java("Main", [question_id])
+    run_result = run_java("Main", [solution_id])
     print(run_result[0])
-
-    print("wait")
-    import time
-    time.sleep(5)
 
     print("acknowledge")
     ch.basic_ack(delivery_tag=method.delivery_tag)
