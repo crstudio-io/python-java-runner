@@ -26,11 +26,11 @@ if __name__ == '__main__':
             os.makedirs(os.path.dirname(test_file), exist_ok=True)
         with open(test_file, "w") as f:
             f.write("""
-public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello World!");
-    }
-}
+            public class Main {
+                public static void main(String[] args) {
+                    System.out.println("Hello World!");
+                }
+            }
             """)
 
     result = compile_java(test_file)
