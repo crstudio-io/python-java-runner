@@ -41,6 +41,7 @@ class TutorRepo:
     def update_solution_score(self, sol_id: int, score: int):
         solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
         solution.score = score
+        solution.status = "SUCCESS" if score == 100 else "FAIL"
         self.session.commit()
 
 
