@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def run_java(java_class: str, classpath: list = None, input_file: str = None) -> tuple:
+def run_java(java_class: str, classpath: list = None, input_file: str = None, input_data: str = None) -> tuple:
     command = "java "
     if classpath is not None:
         classpath_str = "-cp "
@@ -11,7 +11,6 @@ def run_java(java_class: str, classpath: list = None, input_file: str = None) ->
         command += classpath_str[:-1] + " "
     command += java_class
     print(command)
-    input_data = None
     if input_file:
         with open(input_file) as fp:
             input_data = fp.read()

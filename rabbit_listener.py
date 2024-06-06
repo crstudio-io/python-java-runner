@@ -4,6 +4,10 @@ import pika
 
 from compiler import compile_java
 from runner import run_java
+from repository import TutorRepo
+
+
+tutor_repo = TutorRepo()
 
 
 def callback(ch, method, properties, body):
@@ -23,9 +27,14 @@ def callback(ch, method, properties, body):
     compile_result = compile_java(java_file)
     print(compile_result[0])
 
-    print("run class")
-    run_result = run_java("Main", [solution_id])
-    print(run_result[0])
+    with tutor_repo() as session:
+        test_cases = session.find_test_cases(problem_id)
+        correct = 0
+        for test_case in test_cases:
+            input_data = test_case.input
+            run_result = run_java("Main", [solution_id], input_data=input_data)
+            correct += 1 if run_result[0].rstrip() == str(test_case.output).rstrip() else 0
+        print(correct)
 
     print("acknowledge")
     ch.basic_ack(delivery_tag=method.delivery_tag)
