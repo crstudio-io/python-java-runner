@@ -1,9 +1,16 @@
 import os
 import subprocess
 
+from logger import get_logger
+
+
+logger = get_logger("compiler")
+
 
 def compile_java(java_fname: str) -> tuple:
+    logger.debug(f"process file: {java_fname}")
     command = f"javac {java_fname}"
+    logger.debug(f"actual command: {command}")
 
     result = subprocess.run(
         command,
@@ -11,6 +18,8 @@ def compile_java(java_fname: str) -> tuple:
         capture_output=True,
         text=True
     )
+    logger.debug(f"result return code: {result.returncode}")
+    logger.debug(f"stderr: {result.stderr.strip()}")
 
     return result.returncode, result.stderr.strip()
 
@@ -34,8 +43,8 @@ if __name__ == '__main__':
             """)
 
     result = compile_java(test_file)
-    print(f"exit code: {result[0]}")
-    print("stderr: " + result[1])
+    logger.debug(f"exit code: {result[0]}")
+    logger.debug("stderr: " + result[1])
     if result[0] == 0:
         os.remove(test_classfile)
     os.remove(test_file)

@@ -4,6 +4,12 @@ from sqlalchemy.orm import sessionmaker
 from models import TestCase, Problem, Solution
 
 
+from logger import get_logger
+
+
+logger = get_logger("repository")
+
+
 class TutorRepo:
     def __init__(self):
         self.session_maker = sessionmaker(
@@ -49,18 +55,8 @@ if __name__ == '__main__':
     tutor_repo = TutorRepo()
     with tutor_repo() as session:
         restrictions = session.find_restrictions(1)
-        print(restrictions)
+        logger.debug(restrictions)
 
         for test_case in session.find_test_cases(1):
-            print(test_case.input)
-            print(test_case.output)
-
-    # engine = create_engine("postgresql://tutor:password@localhost/tutor")
-    # SessionMaker = sessionmaker(autoflush=True, bind=engine)
-    # with SessionMaker() as s:
-    #     stmt = select(TestCase).where(TestCase.id == 1)
-    #     print(s.scalar(stmt).input)
-    #     stmt = select(Problem).where(Problem.id == 1)
-    #     for test_case in s.scalar(stmt).test_cases:
-    #         print(test_case.input)
-    #         print(test_case.output)
+            logger.debug(test_case.input)
+            logger.debug(test_case.output)
