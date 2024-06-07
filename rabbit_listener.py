@@ -12,7 +12,7 @@ logger = get_logger("mq_listener")
 tutor_repo = TutorRepo()
 
 
-def callback(ch, method, properties, body):
+def callback(ch, method, _, body):
     logger.debug("decode message to json")
     payload = json.loads(body)
     solution_id = payload["id"]

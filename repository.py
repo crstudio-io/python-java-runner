@@ -2,8 +2,6 @@ from sqlalchemy import create_engine, select, ScalarResult
 from sqlalchemy.orm import sessionmaker
 
 from models import TestCase, Problem, Solution
-
-
 from logger import get_logger
 
 
