@@ -45,10 +45,15 @@ Since most of my python experience was algorithms and Django, it was a joyful ex
 
 In between database transactions database omitted (status change, etc.).
 
+## Configuration
+
+TODO
+
 ## TODO
 
 - [ ] Dockerfile
-- [ ] Configuration management
+- [X] Configuration management
+  - [ ] Documentation
 - [ ] GitHub Actions
 - [ ] Set run restrictions (timeout, memory)
 - [ ] Run multiple test cases at once

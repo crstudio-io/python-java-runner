@@ -1,0 +1,10 @@
+{
+  "rabbitmq": {
+    "host": "localhost",
+    "port": 5672,
+    "user": "user",
+    "password": "password",
+    "queue_name": "java_runner_queue"
+  },
+  "db_connection_str": "postgresql://tutor:password@localhost/tutor"
+}

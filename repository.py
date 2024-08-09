@@ -9,10 +9,11 @@ logger = get_logger("repository")
 
 
 class TutorRepo:
-    def __init__(self):
+    def __init__(self, connection_str: str):
+        engine = create_engine("postgresql://tutor:password@localhost/tutor" if connection_str is None else connection_str)
         self.session_maker = sessionmaker(
             autoflush=True,
-            bind=create_engine("postgresql://tutor:password@localhost/tutor")
+            bind=engine
         )
         self.session = None
 
