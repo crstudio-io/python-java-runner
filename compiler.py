@@ -9,8 +9,9 @@ logger = get_logger("compiler")
 
 def compile_java(java_fname: str) -> tuple:
     logger.debug(f"process file: {java_fname}")
-    command = f"javac {java_fname}"
-    logger.debug(f"actual command: {command}")
+    javac_cmd = os.getenv("JAVAC_CMD", "javac")
+    command = f"{javac_cmd} {java_fname}"
+    logger.debug(f"evaluated command: {command}")
 
     result = subprocess.run(
         command,

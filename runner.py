@@ -9,7 +9,8 @@ logger = get_logger("runner")
 
 def run_java(java_class: str, classpath: list = None, input_file: str = None, input_data: str = None) -> tuple:
     logger.debug(f"run target: {java_class}")
-    command = "java "
+    java_cmd = os.getenv("JAVA_CMD", "java")
+    command = f"{java_cmd} "
     if classpath is not None:
         classpath_str = "-cp "
         for path in classpath:
@@ -70,7 +71,7 @@ if __name__ == '__main__':
                 }
             }
             """)
-    subprocess.run(f"javac {test_file}", shell=True)
+    subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
     res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt")
     logger.debug("stdout: " + res[0])
     logger.debug("stderr: " + res[1])
