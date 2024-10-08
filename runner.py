@@ -9,7 +9,8 @@ logger = get_logger("runner")
 
 def run_java(java_class: str, classpath: list = None, input_file: str = None, input_data: str = None) -> tuple:
     logger.debug(f"run target: {java_class}")
-    command = "java "
+    java_cmd = os.getenv("JAVA_CMD", "java")
+    command = f"{java_cmd} "
     if classpath is not None:
         classpath_str = "-cp "
         for path in classpath:
@@ -40,7 +41,7 @@ def run_java(java_class: str, classpath: list = None, input_file: str = None, in
 
 if __name__ == '__main__':
     create = True
-    test_file = "0/Main.java"
+    test_file = "build/0/Main.java"
     test_classfile = os.path.splitext(test_file)[0] + ".class"
     test_packages = test_file.split("/")[:-1] if "/" in test_file else None
     test_classname = test_classfile.split(".")[0]
@@ -70,7 +71,7 @@ if __name__ == '__main__':
                 }
             }
             """)
-    subprocess.run(f"javac {test_file}", shell=True)
+    subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
     res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt")
     logger.debug("stdout: " + res[0])
     logger.debug("stderr: " + res[1])
