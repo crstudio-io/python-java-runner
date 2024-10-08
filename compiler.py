@@ -27,7 +27,7 @@ def compile_java(java_fname: str) -> tuple:
 
 if __name__ == '__main__':
     create = True
-    test_file = "0/Main.java"
+    test_file = "build/0/Main.java"
     test_classfile = os.path.splitext(test_file)[0] + ".class"
     test_packages = test_file.split("/")[:-1] if "/" in test_file else None
 

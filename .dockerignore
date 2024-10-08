@@ -3,6 +3,11 @@ example_payload.json
 img.png
 README.md
 test_input.txt
-venv
-**/*.class
-**/*.java
+venv/
+.venv/
+build/
+.git/
+.gitignore/
+.idea/
+.dockerignore
+Dockerfile

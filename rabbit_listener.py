@@ -30,9 +30,9 @@ def callback(ch, method, _, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
         logger.debug(f"{solution_id}: save code for compilation")
-        java_file = f"{solution_id}/Main.java"
+        java_file = f"build/{solution_id}/Main.java"
         os.makedirs(os.path.dirname(java_file), exist_ok=True)
-        with open(f"{solution_id}/Main.java", "w") as fp:
+        with open(java_file, "w") as fp:
             fp.writelines(code_payload)
 
         logger.debug(f"{solution_id}: compile java")
@@ -49,7 +49,7 @@ def callback(ch, method, _, body):
         correct = 0
         for test_case in test_cases:
             input_data = test_case.input
-            run_result = run_java("Main", [solution_id], input_data=input_data)
+            run_result = run_java("Main", ["build", solution_id], input_data=input_data)
             logger.debug(f"{solution_id}: result: " + run_result[0].rstrip())
             logger.debug(f"{solution_id}: expected: " + str(test_case.output).rstrip())
             correct += 1 if run_result[0].rstrip() == str(test_case.output).rstrip() else 0
