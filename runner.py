@@ -7,7 +7,13 @@ from logger import get_logger
 logger = get_logger("runner")
 
 
-def run_java(java_class: str, classpath: list = None, input_file: str = None, input_data: str = None) -> tuple:
+def run_java(
+        java_class: str,
+        classpath: list = None,
+        input_file: str = None,
+        input_data: str = None,
+        timeout: int = None,
+) -> tuple:
     logger.debug(f"run target: {java_class}")
     java_cmd = os.getenv("JAVA_CMD", "java")
     command = f"{java_cmd} "
@@ -28,10 +34,10 @@ def run_java(java_class: str, classpath: list = None, input_file: str = None, in
 
     result = subprocess.run(
         command,
-        shell=True,
         capture_output=True,
         text=True,
-        input=input_data
+        input=input_data,
+        timeout=timeout,
     )
     logger.debug(f"result stdout: {result.stdout.strip()}")
     logger.debug(f"result stderr: {result.stderr.strip()}")
@@ -70,9 +76,18 @@ if __name__ == '__main__':
                     // throw new RuntimeException();
                 }
             }
+            /*
+            public class Main {
+                public static void main(String[] args) throws InterruptedException {
+                    while (true) {
+                        Thread.sleep(2000);
+                    }
+                }
+            }
+            */
             """)
     subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
-    res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt")
+    res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt", timeout=1)
     logger.debug("stdout: " + res[0])
     logger.debug("stderr: " + res[1])
     os.remove(test_classfile)
