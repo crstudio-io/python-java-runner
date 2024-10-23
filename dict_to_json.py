@@ -15,5 +15,6 @@ public class Main {
 print(json.dumps({
     "id": 0,
     "pid": 0,
-    "code": target
+    "code": target,
+    "lang": "JAVA17"
 }))
