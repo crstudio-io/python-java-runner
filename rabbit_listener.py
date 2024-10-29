@@ -45,11 +45,20 @@ def callback(ch, method, _, body):
 
         logger.debug(f"{solution_id}: retrieve test cases")
         test_cases = session.find_test_cases(problem_id).all()
+        restrictions = session.find_restrictions(problem_id)
         total = len(test_cases)
         correct = 0
         for test_case in test_cases:
             input_data = test_case.input
-            run_result = run_java("Main", ["build", solution_id], input_data=input_data)
+            logger.debug(input_data)
+            run_result = run_java(
+                "Main", ["build", solution_id],
+                input_data=input_data,
+                timeout=restrictions[0],
+                memory=restrictions[1],
+            )
+            if run_result[2] != "OK":
+                continue
             logger.debug(f"{solution_id}: result: " + run_result[0].rstrip())
             logger.debug(f"{solution_id}: expected: " + str(test_case.output).rstrip())
             correct += 1 if run_result[0].rstrip() == str(test_case.output).rstrip() else 0

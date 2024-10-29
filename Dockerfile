@@ -2,7 +2,7 @@ FROM python:3
 
 WORKDIR /usr/src/app
 
-RUN curl --output jdk.tar.gz  https://download.oracle.com/graalvm/17/latest/graalvm-jdk-17_linux-x64_bin.tar.gz && \
+RUN curl --output jdk.tar.gz https://download.oracle.com/graalvm/17/archive/graalvm-jdk-17.0.12_linux-x64_bin.tar.gz && \
     tar -zxvf jdk.tar.gz && \
     mv graalvm-jdk-17.0.12+8.1 jdk && \
     rm jdk.tar.gz
