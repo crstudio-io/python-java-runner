@@ -77,53 +77,6 @@ class JavaRunner(CodeRunner):
         return RunResult.success()
 
 
-def run_java(
-        java_class: str,
-        classpath: list = None,
-        input_file: str = None,
-        input_data: str = None,
-        timeout: int = None,
-        memory: int = None,
-) -> tuple:
-    logger.debug(f"run target: {java_class}")
-    java_cmd = os.getenv("JAVA_CMD", "java")
-    command = f"{java_cmd} "
-    if classpath is not None:
-        classpath_str = "-cp "
-        for path in classpath:
-            classpath_str += str(path).strip() + "/"
-        command += classpath_str[:-1] + " "
-    if memory is not None:
-        command += f"-Xmx{memory}m "
-    command += java_class
-    logger.debug(f"evaluated command: {command}")
-
-    if not input_data and input_file:
-        logger.debug("get input from file")
-        with open(input_file) as fp:
-            input_data = fp.read()
-    else:
-        logger.debug("get input from args")
-
-    try:
-        run_result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            input=input_data,
-            timeout=timeout,
-        )
-        logger.debug(f"result stdout: {run_result.stdout.strip()}")
-        logger.debug(f"result stderr: {run_result.stderr.strip()}")
-        stdout, stderr = run_result.stdout.strip(), run_result.stderr.strip()
-        report = stdout, stderr, "OUT OF MEMORY" if stderr.find("OutOfMemoryError") != -1 else "OK"
-    except subprocess.TimeoutExpired:
-        report = "", "", "TIMEOUT"
-
-    return report
-
-
 if __name__ == '__main__':
     create = True
     test_file = "build/0/Main.java"

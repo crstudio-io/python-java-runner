@@ -1,11 +1,12 @@
-import os
 import json
+import os
+
 import pika
 
-from compiler import compile_java
-from java_runner import run_java
-from repository import TutorRepo
+from java_runner import JavaRunner
 from logger import get_logger
+from repository import TutorRepo
+from runner import Status
 
 config = None
 config_file = os.getenv("RUNNER_CONF_FILE")
@@ -15,6 +16,12 @@ if config_file and os.path.isfile(config_file):
 
 tutor_repo = TutorRepo(config["db_connection_str"] if config else None)
 logger = get_logger("mq_listener")
+
+
+code_runner = JavaRunner(
+    java_cmd=os.getenv("JAVA_CMD", "java"),
+    javac_cmd=os.getenv("JAVAC_CMD", "javac")
+)
 
 
 def callback(ch, method, _, body):
@@ -35,14 +42,6 @@ def callback(ch, method, _, body):
         with open(java_file, "w") as fp:
             fp.writelines(code_payload)
 
-        logger.debug(f"{solution_id}: compile java")
-        compile_result = compile_java(java_file)
-        logger.info(f"{solution_id}: compilation exit code - {compile_result[0]}")
-        if compile_result[0] != 0:
-            logger.warning(f"{solution_id}: compile error")
-            session.update_solution_status(solution_id, "ERROR")
-            return
-
         logger.debug(f"{solution_id}: retrieve test cases")
         test_cases = session.find_test_cases(problem_id).all()
         restrictions = session.find_restrictions(problem_id)
@@ -51,17 +50,17 @@ def callback(ch, method, _, body):
         for test_case in test_cases:
             input_data = test_case.input
             logger.debug(input_data)
-            run_result = run_java(
-                "Main", ["build", solution_id],
-                input_data=input_data,
+            run_result = code_runner.run(
+                source=java_file,
+                input_data=str(test_case.input),
+                output_data=str(test_case.output),
                 timeout=restrictions[0],
                 memory=restrictions[1],
             )
-            if run_result[2] != "OK":
-                continue
-            logger.debug(f"{solution_id}: result: " + run_result[0].rstrip())
-            logger.debug(f"{solution_id}: expected: " + str(test_case.output).rstrip())
-            correct += 1 if run_result[0].rstrip() == str(test_case.output).rstrip() else 0
+
+            if run_result.status == Status.SUCCESS:
+                correct += 1
+
         score = int(correct / total * 100)
         logger.info(f"{solution_id}: score - {score}")
         session.update_solution_score(solution_id, score)
