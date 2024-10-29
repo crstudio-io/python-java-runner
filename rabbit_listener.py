@@ -3,7 +3,7 @@ import json
 import pika
 
 from compiler import compile_java
-from runner import run_java
+from java_runner import run_java
 from repository import TutorRepo
 from logger import get_logger
 
