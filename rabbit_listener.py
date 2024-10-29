@@ -42,6 +42,12 @@ def callback(ch, method, _, body):
         with open(java_file, "w") as fp:
             fp.writelines(code_payload)
 
+        if not code_runner.prep(java_file):
+            logger.info(f"{solution_id}: compile error")
+            session.update_solution_score(solution_id, 0)
+            code_runner.cleanup(java_file)
+            return
+
         logger.debug(f"{solution_id}: retrieve test cases")
         test_cases = session.find_test_cases(problem_id).all()
         restrictions = session.find_restrictions(problem_id)
@@ -64,6 +70,7 @@ def callback(ch, method, _, body):
         score = int(correct / total * 100)
         logger.info(f"{solution_id}: score - {score}")
         session.update_solution_score(solution_id, score)
+        code_runner.cleanup(java_file)
 
 
 if __name__ == '__main__':

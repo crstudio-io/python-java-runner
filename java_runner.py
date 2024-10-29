@@ -12,15 +12,8 @@ class JavaRunner(CodeRunner):
         self.java_cmd = java_cmd
         self.javac_cmd = javac_cmd
 
-    def run(
-            self,
-            source: str,
-            input_data: str,
-            output_data: str,
-            timeout: int = None,
-            memory: int = None,
-    ) -> RunResult:
-        logger.debug(f"run target: {source}")
+    def prep(self, source: str):
+        logger.debug(f"compile target: {source}")
         command = f"{self.javac_cmd} {source}"
         logger.debug(f"compile command: {command}")
         compile_result = subprocess.run(
@@ -31,12 +24,17 @@ class JavaRunner(CodeRunner):
         )
         logger.debug(f"result return code: {compile_result.returncode}")
         logger.debug(f"stderr: {compile_result.stderr.strip()}")
-        if compile_result.returncode != 0:
-            return RunResult.compile_err(
-                stdout=compile_result.stdout.strip(),
-                stderr=compile_result.stderr.strip()
-            )
+        return compile_result.returncode == 0
 
+    def run(
+            self,
+            source: str,
+            input_data: str,
+            output_data: str,
+            timeout: int = None,
+            memory: int = None,
+    ) -> RunResult:
+        logger.debug(f"run target: {source}")
         classname = os.path.splitext(source)[0].split("/")[-1]
         classpath = "/".join(source.split("/")[:-1]) if "/" in source else None
         logger.debug(classname)
@@ -51,7 +49,6 @@ class JavaRunner(CodeRunner):
         try:
             run_result = subprocess.run(
                 command,
-                # shell=True,
                 capture_output=True,
                 text=True,
                 input=input_data,
@@ -61,20 +58,27 @@ class JavaRunner(CodeRunner):
             stdout, stderr = run_result.stdout.strip(), run_result.stderr.strip()
             logger.debug(f"result stdout: {stdout}")
             logger.debug(f"result stderr: {stderr}")
-            if stderr: logger.error(stderr)
             if stderr.find("OutOfMemoryError") != -1:
                 return RunResult.oom()
             if stderr:
+                logger.debug(f"{stderr}")
                 return RunResult.runtime_err(stderr=stderr)
             run_output = stdout, stderr
         except subprocess.TimeoutExpired:
             return RunResult.timeout()
 
         if run_output[0] != output_data.strip():
+            logger.debug(f"stdin: {input_data}")
             logger.debug(f"stdout: {run_output[0]}")
             logger.debug(f"expected: {output_data.strip()}")
             return RunResult.fail()
         return RunResult.success()
+
+    def cleanup(self, source: str):
+        os.remove(source)
+        classname = os.path.splitext(source)[0] + ".class"
+        os.remove(classname)
+        os.rmdir(source[:source.rfind("/")])
 
 
 if __name__ == '__main__':
@@ -105,15 +109,18 @@ if __name__ == '__main__':
         }
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="hi\n",
-        timeout=5,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     # FAIL
     logger.info("TEST: failure")
@@ -129,15 +136,18 @@ if __name__ == '__main__':
         }
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="h1\n",
-        timeout=5,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     # COMPILE
     logger.info("TEST: compile error")
@@ -153,15 +163,18 @@ if __name__ == '__main__':
         
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="h1\n",
-        timeout=5,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     # RUNTIME
     logger.info("TEST: runtime exception")
@@ -177,15 +190,18 @@ if __name__ == '__main__':
         }
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="h1\n",
-        timeout=1,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     # TIMEOUT
     logger.info("TEST: timeout")
@@ -204,15 +220,18 @@ if __name__ == '__main__':
         }
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="h1\n",
-        timeout=1,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=1,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     # OOM
     logger.info("TEST: out of memory")
@@ -233,15 +252,18 @@ if __name__ == '__main__':
         }
         """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
-    run_result = java_runner.run(
-        test_file,
-        input_data="hi\n",
-        output_data="h1\n",
-        memory=256,
-    )
-    logger.debug(f"result.stdout: {run_result.stdout}")
-    logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.info(f"result.status: {run_result.status}")
+    if java_runner.prep(test_file):
+        result = java_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            memory=256,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
 
     os.remove(test_classfile)
     os.remove(test_file)

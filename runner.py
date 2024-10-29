@@ -55,6 +55,10 @@ class CodeRunner(ABC):
         pass
 
     @abstractmethod
+    def prep(self, source: str) -> bool:
+        pass
+
+    @abstractmethod
     def run(
             self,
             source: str,
@@ -63,4 +67,8 @@ class CodeRunner(ABC):
             timeout: int = None,
             memory: int = None,
     ) -> RunResult:
+        pass
+
+    @abstractmethod
+    def cleanup(self, source: str):
         pass
