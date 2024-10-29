@@ -37,6 +37,43 @@ class JavaRunner(CodeRunner):
                 stderr=compile_result.stderr.strip()
             )
 
+        classname = os.path.splitext(source)[0].split("/")[-1]
+        classpath = "/".join(source.split("/")[:-1]) if "/" in source else None
+        logger.debug(classname)
+        logger.debug(classpath)
+
+        command = f"{self.java_cmd} -cp {classpath} "
+        if memory is not None:
+            command += f"-Xmx{memory}m "
+        command += classname
+        logger.debug(f"run command: {command}")
+
+        try:
+            run_result = subprocess.run(
+                command,
+                # shell=True,
+                capture_output=True,
+                text=True,
+                input=input_data,
+                timeout=timeout,
+            )
+
+            stdout, stderr = run_result.stdout.strip(), run_result.stderr.strip()
+            logger.debug(f"result stdout: {stdout}")
+            logger.debug(f"result stderr: {stderr}")
+            if stderr: logger.error(stderr)
+            if stderr.find("OutOfMemoryError") != -1:
+                return RunResult.oom()
+            if stderr:
+                return RunResult.runtime_err(stderr=stderr)
+            run_output = stdout, stderr
+        except subprocess.TimeoutExpired:
+            return RunResult.timeout()
+
+        if run_output[0] != output_data.strip():
+            logger.debug(f"stdout: {run_output[0]}")
+            logger.debug(f"expected: {output_data.strip()}")
+            return RunResult.fail()
         return RunResult.success()
 
 
@@ -95,44 +132,163 @@ if __name__ == '__main__':
     test_classname = test_classfile.split(".")[0]
     if test_packages:
         test_classname = test_classname.split("/")[-1]
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
 
     logger.debug(test_file)
     logger.debug(test_packages)
     logger.debug(test_classfile)
     logger.debug(test_classname)
 
-    if create:
-        if test_packages:
-            os.makedirs(os.path.dirname(test_file), exist_ok=True)
-        with open(test_file, "w") as fp:
-            fp.write("""
-            import java.util.Scanner;
-            
-            public class Main {
-                public static void main(String[] args) {
-                    int[] arr = new int[1024 * 1024 * 32];
-                    double[] dArr = new double[1024 * 1024 * 32];
-                    String[] strs = new String[1024 * 1024 * 32];
-                    Scanner scanner = new Scanner(System.in);
-                    System.out.println(scanner.nextLine());
-                }
+    # SUCCESS
+    logger.info("TEST: success")
+    with open(test_file, "w") as fp:
+        fp.write("""
+        import java.util.Scanner;
+        public class Main {
+            public static void main(String[] args) {
+                Scanner scanner = new Scanner(System.in);
+                System.out.println(scanner.nextLine());
             }
-            """)
-
+        }
+        """)
     java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
     run_result = java_runner.run(
         test_file,
-        input_data=open("test_input.txt").read(),
-        output_data="",
-        timeout=1000,
-        memory=1000,
+        input_data="hi\n",
+        output_data="hi\n",
+        timeout=5,
     )
     logger.debug(f"result.stdout: {run_result.stdout}")
     logger.debug(f"result.stderr: {run_result.stderr}")
-    logger.debug(f"result.status: {run_result.status}")
+    logger.info(f"result.status: {run_result.status}")
+
+    # FAIL
+    logger.info("TEST: failure")
+    if test_packages:
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
+    with open(test_file, "w") as fp:
+        fp.write("""
+        public class Main {
+            public static void main(String[] args) {
+                System.out.println("hi");
+                System.out.println("failed!!!!");
+            }
+        }
+        """)
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data="hi\n",
+        output_data="h1\n",
+        timeout=5,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.info(f"result.status: {run_result.status}")
+
+    # COMPILE
+    logger.info("TEST: compile error")
+    if test_packages:
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
+    with open(test_file, "w") as fp:
+        fp.write("""
+        public class Main {
+            public static void main(String[] args) {
+                System.out.println("hi");
+                System.out.println("failed!!!!");
+            }
+        
+        """)
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data="hi\n",
+        output_data="h1\n",
+        timeout=5,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.info(f"result.status: {run_result.status}")
+
+    # RUNTIME
+    logger.info("TEST: runtime exception")
+    if test_packages:
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
+    with open(test_file, "w") as fp:
+        fp.write("""
+        public class Main {
+            public static void main(String[] args) {
+                int[] a = new int[1];
+                a[1] = 10;
+            }
+        }
+        """)
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data="hi\n",
+        output_data="h1\n",
+        timeout=1,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.info(f"result.status: {run_result.status}")
+
+    # TIMEOUT
+    logger.info("TEST: timeout")
+    if test_packages:
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
+    with open(test_file, "w") as fp:
+        fp.write("""
+        import java.util.Scanner;
+
+        public class Main {
+            public static void main(String[] args) throws InterruptedException {
+                while (true) {
+                    Thread.sleep(2000);
+                }
+            }
+        }
+        """)
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data="hi\n",
+        output_data="h1\n",
+        timeout=1,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.info(f"result.status: {run_result.status}")
+
+    # OOM
+    logger.info("TEST: out of memory")
+    if test_packages:
+        os.makedirs(os.path.dirname(test_file), exist_ok=True)
+    with open(test_file, "w") as fp:
+        fp.write("""
+        import java.util.Scanner;
+
+        public class Main {
+            public static void main(String[] args) {
+                int[] arr = new int[1024 * 1024 * 32];
+                double[] dArr = new double[1024 * 1024 * 32];
+                String[] strs = new String[1024 * 1024 * 32];
+                Scanner scanner = new Scanner(System.in);
+                System.out.println(scanner.nextLine());
+            }
+        }
+        """)
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data="hi\n",
+        output_data="h1\n",
+        memory=256,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.info(f"result.status: {run_result.status}")
+
     os.remove(test_classfile)
     os.remove(test_file)
-    # subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
-    # res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt", timeout=1, memory=256)
-    # logger.debug("stdout: " + res[0])
-    # logger.debug("stderr: " + res[1])

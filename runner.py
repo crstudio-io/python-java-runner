@@ -6,6 +6,7 @@ class Status(Enum):
     SUCCESS = "SUCCESS"
     FAIL = "FAIL"
     COMPILE_ERROR = "COMPILE_ERROR"
+    RUNTIME_ERROR = "RUNTIME_ERROR"
     TIMEOUT = "TIMEOUT"
     OUT_OF_MEMORY = "OUT_OF_MEMORY"
 
@@ -35,6 +36,10 @@ class RunResult:
     @staticmethod
     def compile_err(stdout: str = "", stderr: str = ""):
         return RunResult(stdout, stderr, Status.COMPILE_ERROR)
+
+    @staticmethod
+    def runtime_err(stderr: str = ""):
+        return RunResult(stderr=stderr, status=Status.RUNTIME_ERROR)
 
     @staticmethod
     def timeout():
