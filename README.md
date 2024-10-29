@@ -28,22 +28,23 @@ So using python, I wanted to try out tools I wasn't familiar with,
 without much reference from blogs, tutorials, but only documentations.
 Since most of my python experience was algorithms and Django, it was a joyful experience.
 
-## Basic Concept
+## Basic Concepts
 
-![img.png](img.png)
+Before, there were separate python scripts that control compiling and running.
+Now, it is all wrapped up into an abstract class, [`CodeRunner`](runner.py), which handles the following tasks:
 
-1. a User submits a solution from a higher project.
-2. the project produces a message containing JSON data that looks like [example_payload.json](example_payload.json).
-   - A computer may produce this message easily...
-   - But for humans [`dict_to_json.py`](dict_to_json.py) may come in handy
-3. [`rabbit_listener.py`](rabbit_listener.py) listens to the message, and save the code to a file.
-   - So this project is meant to be run as multiple instances, for the competing consumers pattern.
-4. [`compiler.py`](compiler.py) compiles the code.
-5. [`rabbit_listener.py`](rabbit_listener.py) retrieves test cases with [`repository.py`](repository.py),
-6. then use [`runner.py`](runner.py) to run the code once per test case.
-7. finally, compare the output with expected, and update the results!
+1. Save the source in a desired format. (`CodeRunner.save()`)
+2. Prepare the source so it could be run. (`CodeRunner.prep()`)
+3. Run the code and organize results. (`CodeRunner.run()`)
+4. Cleanup any files no longer needed. (`CodeRunner.cleanup()`)
 
-In between database transactions database omitted (status change, etc.).
+All methods are meant to be run in an independent manner, so when chances come
+the tasks may be migrated to other compartments. `save()` method is the only `super` method, 
+and each `CodeRunner` implementation is expected to work based on the method's return value.
+
+The [`rabbit_listener.py`](rabbit_listener.py) listens to code run requests via RabbitMQ with pika.
+So multiple instances of `rabbit_listener.py`s can run several solutions at once.
+
 
 ## Configuration
 
@@ -51,11 +52,12 @@ TODO
 
 ## TODO
 
-- [ ] Dockerfile
+- [X] Dockerfile
+  - [ ] Documentation
 - [X] Configuration management
   - [ ] Documentation
 - [ ] GitHub Actions
-- [ ] Set run restrictions (timeout, memory)
+- [X] Set run restrictions (timeout, memory)
 - [ ] Run multiple test cases at once
 - [ ] Find more security vulnerabilities
-- [ ] Clean up files
+- [X] Clean up files
