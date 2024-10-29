@@ -1,9 +1,43 @@
 import os
 import subprocess
 from logger import get_logger
+from runner import CodeRunner, RunResult
+
+logger = get_logger("java_runner")
 
 
-logger = get_logger("runner")
+class JavaRunner(CodeRunner):
+    def __init__(self, java_cmd: str, javac_cmd: str):
+        super().__init__()
+        self.java_cmd = java_cmd
+        self.javac_cmd = javac_cmd
+
+    def run(
+            self,
+            source: str,
+            input_data: str,
+            output_data: str,
+            timeout: int = None,
+            memory: int = None,
+    ) -> RunResult:
+        logger.debug(f"run target: {source}")
+        command = f"{self.javac_cmd} {source}"
+        logger.debug(f"compile command: {command}")
+        compile_result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.debug(f"result return code: {compile_result.returncode}")
+        logger.debug(f"stderr: {compile_result.stderr.strip()}")
+        if compile_result.returncode != 0:
+            return RunResult.compile_err(
+                stdout=compile_result.stdout.strip(),
+                stderr=compile_result.stderr.strip()
+            )
+
+        return RunResult.success()
 
 
 def run_java(
@@ -82,10 +116,23 @@ if __name__ == '__main__':
                     Scanner scanner = new Scanner(System.in);
                     System.out.println(scanner.nextLine());
                 }
+            }
             """)
-    subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
-    res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt", timeout=1, memory=256)
-    logger.debug("stdout: " + res[0])
-    logger.debug("stderr: " + res[1])
+
+    java_runner = JavaRunner(java_cmd="java", javac_cmd="javac")
+    run_result = java_runner.run(
+        test_file,
+        input_data=open("test_input.txt").read(),
+        output_data="",
+        timeout=1000,
+        memory=1000,
+    )
+    logger.debug(f"result.stdout: {run_result.stdout}")
+    logger.debug(f"result.stderr: {run_result.stderr}")
+    logger.debug(f"result.status: {run_result.status}")
     os.remove(test_classfile)
     os.remove(test_file)
+    # subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
+    # res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt", timeout=1, memory=256)
+    # logger.debug("stdout: " + res[0])
+    # logger.debug("stderr: " + res[1])
