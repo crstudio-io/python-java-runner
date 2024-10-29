@@ -1,91 +1,88 @@
 import os
-import subprocess
-from logger import get_logger
+from abc import ABC, abstractmethod
+from enum import Enum
 
+from logger import get_logger
 
 logger = get_logger("runner")
 
 
-def run_java(
-        java_class: str,
-        classpath: list = None,
-        input_file: str = None,
-        input_data: str = None,
-        timeout: int = None,
-        memory: int = None,
-) -> tuple:
-    logger.debug(f"run target: {java_class}")
-    java_cmd = os.getenv("JAVA_CMD", "java")
-    command = f"{java_cmd} "
-    if classpath is not None:
-        classpath_str = "-cp "
-        for path in classpath:
-            classpath_str += str(path).strip() + "/"
-        command += classpath_str[:-1] + " "
-    if memory is not None:
-        command += f"-Xmx{memory}m "
-    command += java_class
-    logger.debug(f"evaluated command: {command}")
+class Status(Enum):
+    SUCCESS = "SUCCESS"
+    FAIL = "FAIL"
+    COMPILE_ERROR = "COMPILE_ERROR"
+    RUNTIME_ERROR = "RUNTIME_ERROR"
+    TIMEOUT = "TIMEOUT"
+    OUT_OF_MEMORY = "OUT_OF_MEMORY"
 
-    if not input_data and input_file:
-        logger.debug("get input from file")
-        with open(input_file) as fp:
-            input_data = fp.read()
-    else:
-        logger.debug("get input from args")
-
-    try:
-        run_result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            input=input_data,
-            timeout=timeout,
-        )
-        logger.debug(f"result stdout: {run_result.stdout.strip()}")
-        logger.debug(f"result stderr: {run_result.stderr.strip()}")
-        stdout, stderr = run_result.stdout.strip(), run_result.stderr.strip()
-        report = stdout, stderr, "OUT OF MEMORY" if stderr.find("OutOfMemoryError") != -1 else "OK"
-    except subprocess.TimeoutExpired:
-        report = "", "", "TIMEOUT"
-
-    return report
+    def __str__(self):
+        return self.name
 
 
-if __name__ == '__main__':
-    create = True
-    test_file = "build/0/Main.java"
-    test_classfile = os.path.splitext(test_file)[0] + ".class"
-    test_packages = test_file.split("/")[:-1] if "/" in test_file else None
-    test_classname = test_classfile.split(".")[0]
-    if test_packages:
-        test_classname = test_classname.split("/")[-1]
+class RunResult:
+    def __init__(
+            self,
+            stdout: str = "",
+            stderr: str = "",
+            status: Status = Status.SUCCESS,
+    ):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.status = status
 
-    logger.debug(test_file)
-    logger.debug(test_packages)
-    logger.debug(test_classfile)
-    logger.debug(test_classname)
+    @staticmethod
+    def success():
+        return RunResult(status=Status.SUCCESS)
 
-    if create:
-        if test_packages:
-            os.makedirs(os.path.dirname(test_file), exist_ok=True)
-        with open(test_file, "w") as fp:
-            fp.write("""
-            import java.util.Scanner;
-            
-            public class Main {
-                public static void main(String[] args) {
-                    int[] arr = new int[1024 * 1024 * 32];
-                    double[] dArr = new double[1024 * 1024 * 32];
-                    String[] strs = new String[1024 * 1024 * 32];
-                    Scanner scanner = new Scanner(System.in);
-                    System.out.println(scanner.nextLine());
-                }
-            """)
-    subprocess.run(f"{os.getenv('JAVAC_CMD', 'javac')} {test_file}", shell=True)
-    res = run_java(test_classname, classpath=test_packages, input_file="test_input.txt", timeout=1, memory=256)
-    logger.debug("stdout: " + res[0])
-    logger.debug("stderr: " + res[1])
-    os.remove(test_classfile)
-    os.remove(test_file)
+    @staticmethod
+    def fail():
+        return RunResult(status=Status.FAIL)
+
+    @staticmethod
+    def compile_err(stdout: str = "", stderr: str = ""):
+        return RunResult(stdout, stderr, Status.COMPILE_ERROR)
+
+    @staticmethod
+    def runtime_err(stderr: str = ""):
+        return RunResult(stderr=stderr, status=Status.RUNTIME_ERROR)
+
+    @staticmethod
+    def timeout():
+        return RunResult(status=Status.TIMEOUT)
+
+    @staticmethod
+    def oom():
+        return RunResult(status=Status.OUT_OF_MEMORY)
+
+
+class CodeRunner(ABC):
+    def __init__(self, source_name: str,):
+        self.source_name = source_name
+
+    def save(self, build_dir: str, source_str: str,) -> str:
+        os.makedirs(build_dir, exist_ok=True)
+        filename = os.path.join(build_dir, self.source_name)
+        filename = filename.replace("\\", "/")
+        with open(filename, "w") as fp:
+            fp.writelines(source_str)
+        logger.info(f"save to: {filename}")
+        return filename
+
+    @abstractmethod
+    def prep(self, source: str) -> bool:
+        pass
+
+    @abstractmethod
+    def run(
+            self,
+            source: str,
+            input_data: str,
+            output_data: str,
+            timeout: int = None,
+            memory: int = None,
+    ) -> RunResult:
+        pass
+
+    @abstractmethod
+    def cleanup(self, source: str):
+        pass
