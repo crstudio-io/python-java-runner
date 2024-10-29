@@ -8,7 +8,7 @@ logger = get_logger("java_runner")
 
 class JavaRunner(CodeRunner):
     def __init__(self, java_cmd: str, javac_cmd: str):
-        super().__init__()
+        super().__init__(source_name="Main.java")
         self.java_cmd = java_cmd
         self.javac_cmd = javac_cmd
 

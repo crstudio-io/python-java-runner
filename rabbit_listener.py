@@ -37,11 +37,7 @@ def callback(ch, method, _, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
         logger.debug(f"{solution_id}: save code for compilation")
-        java_file = f"build/{solution_id}/Main.java"
-        os.makedirs(os.path.dirname(java_file), exist_ok=True)
-        with open(java_file, "w") as fp:
-            fp.writelines(code_payload)
-
+        java_file = code_runner.save(f"build/{solution_id}", code_payload)
         if not code_runner.prep(java_file):
             logger.info(f"{solution_id}: compile error")
             session.update_solution_score(solution_id, 0)

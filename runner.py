@@ -1,5 +1,10 @@
+import os
 from abc import ABC, abstractmethod
 from enum import Enum
+
+from logger import get_logger
+
+logger = get_logger("runner")
 
 
 class Status(Enum):
@@ -51,8 +56,17 @@ class RunResult:
 
 
 class CodeRunner(ABC):
-    def __init__(self):
-        pass
+    def __init__(self, source_name: str,):
+        self.source_name = source_name
+
+    def save(self, build_dir: str, source_str: str,) -> str:
+        os.makedirs(build_dir, exist_ok=True)
+        filename = os.path.join(build_dir, self.source_name)
+        filename = filename.replace("\\", "/")
+        with open(filename, "w") as fp:
+            fp.writelines(source_str)
+        logger.info(f"save to: {filename}")
+        return filename
 
     @abstractmethod
     def prep(self, source: str) -> bool:
