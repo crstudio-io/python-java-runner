@@ -41,7 +41,7 @@ def callback(ch, method, _, body):
         java_file = code_runner.save(f"build/{solution_id}", code_payload)
         if not code_runner.prep(java_file):
             logger.info(f"{solution_id}: compile error")
-            session.update_solution_score(solution_id, 0)
+            session.update_solution(solution_id, 0, "ERROR")
             code_runner.cleanup(java_file)
             return
 

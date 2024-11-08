@@ -67,10 +67,10 @@ class TutorRepo:
         self.session.commit()
 
     @retry_options(tries=3, step=1)
-    def update_solution_score(self, sol_id: int, score: int):
+    def update_solution(self, sol_id: int, score: int, status: str):
         solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
         solution.score = score
-        solution.status = "SUCCESS" if score == 100 else "FAIL"
+        solution.status = status
         self.session.commit()
 
     @dataclass
