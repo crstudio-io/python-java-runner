@@ -1,9 +1,10 @@
 import time
+from dataclasses import dataclass
 
 from sqlalchemy import create_engine, select, ScalarResult
 from sqlalchemy.orm import sessionmaker
 
-from models import TestCase, Problem, Solution
+from models import TestCase, Problem, Solution, SolutionCase
 from logger import get_logger
 
 
@@ -61,15 +62,6 @@ class TutorRepo:
 
     @retry_options(tries=3, step=1)
     def update_solution_status(self, sol_id: int, status: str):
-        # for i in range(3):
-        #     solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
-        #     if not solution:
-        #         logger.warn(f"solution {sol_id} not found in db retry in {(i + 1) * 1}s")
-        #         time.sleep((i + 1) * 1)
-        #         continue
-        #     solution.status = status
-        #     self.session.commit()
-        #     return
         solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
         solution.status = status
         self.session.commit()
@@ -79,6 +71,30 @@ class TutorRepo:
         solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
         solution.score = score
         solution.status = "SUCCESS" if score == 100 else "FAIL"
+        self.session.commit()
+
+    @dataclass
+    class CaseResult:
+        sol_id: int
+        case_seq: int
+        status: str
+        details: str
+
+    @retry_options(tries=3, step=1)
+    def update_solution_results(self, sol_id: int, score: int, case_results: list[type(CaseResult)]):
+        case_res_entities = []
+        for case_res in case_results:
+            case_res_entities.append(SolutionCase(
+                sol_id=case_res.sol_id,
+                case_seq=case_res.case_seq,
+                status=case_res.status,
+                details=case_res.details,
+            ))
+
+        solution = self.session.scalar(select(Solution).where(Solution.id == sol_id))
+        solution.score = score
+        solution.status = "SUCCESS" if score == 100 else "FAIL"
+        self.session.add_all(case_res_entities)
         self.session.commit()
 
 
