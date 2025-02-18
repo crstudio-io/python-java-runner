@@ -12,7 +12,6 @@ class PythonRunner(CodeRunner):
     def __init__(self, python_cmd: str):
         super().__init__(source_name="main.py")
         self.python_cmd = python_cmd
-        # self.py_compile = self.python_cmd + " -m py_compile"
 
     def prep(self, source: str) -> bool:
         logger.debug(f"check syntax error: {source}")
@@ -21,19 +20,7 @@ class PythonRunner(CodeRunner):
         except py_compile.PyCompileError:
             logger.debug("py_compile found syntax error")
             return False
-
         return True
-        # command = f"{self.py_compile} {source}"
-        # logger.debug(f"py_compile: {command}")
-        # compile_result = subprocess.run(
-        #     command.split(" "),
-        #     shell=True,
-        #     capture_output=True,
-        #     text=True,
-        # )
-        # logger.debug(f"result return code: {compile_result.returncode}")
-        # logger.debug(f"stderr: {compile_result.stderr.strip()}")
-        # return compile_result.returncode == 0
 
     def run(
             self,
@@ -115,3 +102,81 @@ if __name__ == '__main__':
     else:
         logger.info("COMPILE_ERROR")
 
+    # FAIL
+    logger.info("TEST: failure")
+    with open(test_file, "w") as fp:
+        fp.write("print('hello world')\n")
+
+    python_runner = PythonRunner(python_cmd="python3")
+    if python_runner.prep(test_file):
+        result = python_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
+
+    # COMPILE
+    logger.info("TEST: compile(syntax) error")
+    with open(test_file, "w") as fp:
+        fp.write("print(input()\n")
+
+    python_runner = PythonRunner(python_cmd="python3")
+    if python_runner.prep(test_file):
+        result = python_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
+
+    # RUNTIME
+    logger.info("TEST: runtime exception")
+    with open(test_file, "w") as fp:
+        fp.write("[0][1]\n")
+
+    python_runner = PythonRunner(python_cmd="python3")
+    if python_runner.prep(test_file):
+        result = python_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=5,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
+
+    # TIMEOUT
+    logger.info("TEST: timeout")
+    with open(test_file, "w") as fp:
+        fp.write("import time\nwhile True:\n    time.sleep(1000)\n")
+
+    python_runner = PythonRunner(python_cmd="python3")
+    if python_runner.prep(test_file):
+        result = python_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=1,
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
+
+    # OOM
+    # TODO
