@@ -48,7 +48,7 @@ class JavaRunner(CodeRunner):
 
         try:
             run_result = subprocess.run(
-                command,
+                command.split(" "),
                 capture_output=True,
                 text=True,
                 input=input_data,
