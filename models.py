@@ -41,3 +41,12 @@ class Solution(Base):
     status: Mapped[str] = mapped_column(String(255))
     code: Mapped[str] = mapped_column(Text())
     score: Mapped[int] = mapped_column(Integer())
+
+
+class SolutionCase(Base):
+    __tablename__ = "solution_case"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sol_id: Mapped[int] = mapped_column(ForeignKey("solution.id"))
+    case_seq: Mapped[int] = mapped_column(Integer())
+    status: Mapped[str] = mapped_column(String(255))
+    details: Mapped[str] = mapped_column(Text())

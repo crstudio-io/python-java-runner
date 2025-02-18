@@ -15,6 +15,7 @@ if config_file and os.path.isfile(config_file):
         config = json.load(conf_json)
 
 tutor_repo = TutorRepo(config["db_connection_str"] if config else None)
+case_result = TutorRepo.CaseResult
 logger = get_logger("mq_listener")
 
 
@@ -40,7 +41,7 @@ def callback(ch, method, _, body):
         java_file = code_runner.save(f"build/{solution_id}", code_payload)
         if not code_runner.prep(java_file):
             logger.info(f"{solution_id}: compile error")
-            session.update_solution_score(solution_id, 0)
+            session.update_solution(solution_id, 0, "ERROR")
             code_runner.cleanup(java_file)
             return
 
@@ -49,7 +50,8 @@ def callback(ch, method, _, body):
         restrictions = session.find_restrictions(problem_id)
         total = len(test_cases)
         correct = 0
-        for test_case in test_cases:
+        case_results = []
+        for idx, test_case in enumerate(test_cases, 1):
             input_data = test_case.input
             logger.debug(input_data)
             run_result = code_runner.run(
@@ -62,10 +64,16 @@ def callback(ch, method, _, body):
 
             if run_result.status == Status.SUCCESS:
                 correct += 1
+            case_results.append(case_result(
+                sol_id=solution_id,
+                case_seq=idx,
+                status=run_result.status.name,
+                details=run_result.stderr,
+            ))
 
         score = int(correct / total * 100)
         logger.info(f"{solution_id}: score - {score}")
-        session.update_solution_score(solution_id, score)
+        session.update_solution_results(solution_id, score, case_results)
         code_runner.cleanup(java_file)
 
 

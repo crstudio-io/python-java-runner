@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 
 from logger import get_logger
@@ -19,16 +20,11 @@ class Status(Enum):
         return self.name
 
 
+@dataclass
 class RunResult:
-    def __init__(
-            self,
-            stdout: str = "",
-            stderr: str = "",
-            status: Status = Status.SUCCESS,
-    ):
-        self.stdout = stdout
-        self.stderr = stderr
-        self.status = status
+    stdout: str = None
+    stderr: str = None
+    status: Status = Status.SUCCESS
 
     @staticmethod
     def success():

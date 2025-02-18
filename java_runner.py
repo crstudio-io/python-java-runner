@@ -48,7 +48,7 @@ class JavaRunner(CodeRunner):
 
         try:
             run_result = subprocess.run(
-                command,
+                command.split(" "),
                 capture_output=True,
                 text=True,
                 input=input_data,
@@ -77,7 +77,8 @@ class JavaRunner(CodeRunner):
     def cleanup(self, source: str):
         os.remove(source)
         classname = os.path.splitext(source)[0] + ".class"
-        os.remove(classname)
+        if os.path.exists(classname):
+            os.remove(classname)
         os.rmdir(source[:source.rfind("/")])
 
 
