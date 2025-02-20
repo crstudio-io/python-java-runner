@@ -1,4 +1,5 @@
 import os
+import shutil
 import py_compile
 import subprocess
 
@@ -75,7 +76,7 @@ class PythonRunner(CodeRunner):
 
     def cleanup(self, source: str):
         os.remove(source)
-        os.rmdir(source[:source.rfind("/")])
+        shutil.rmtree(source[:source.rfind("/")], ignore_errors=True)
 
 
 if __name__ == '__main__':
@@ -179,4 +180,22 @@ if __name__ == '__main__':
         logger.info("COMPILE_ERROR")
 
     # OOM
-    # TODO
+    logger.info("TEST: OOM")
+    with open(test_file, "w") as fp:
+        fp.write("print('hi')\n[0] * 80000000000\n")
+
+    python_runner = PythonRunner(python_cmd="python3")
+    if python_runner.prep(test_file):
+        result = python_runner.run(
+            test_file,
+            input_data="hi\n",
+            output_data="hi\n",
+            timeout=1,
+            memory=256
+        )
+        logger.debug(f"result.stdout: {result.stdout}")
+        logger.debug(f"result.stderr: {result.stderr}")
+        logger.info(f"result.status: {result.status}")
+    else:
+        logger.info("COMPILE_ERROR")
+
