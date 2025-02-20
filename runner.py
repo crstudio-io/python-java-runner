@@ -12,9 +12,9 @@ class Status(Enum):
     SUCCESS = "SUCCESS"
     FAIL = "FAIL"
     COMPILE_ERROR = "COMPILE_ERROR"
-    RUNTIME_ERROR = "RUNTIME_ERROR"
+    RUNTIME_ERROR = "ERROR"
     TIMEOUT = "TIMEOUT"
-    OUT_OF_MEMORY = "OUT_OF_MEMORY"
+    OUT_OF_MEMORY = "OOM"
 
     def __str__(self):
         return self.name
