@@ -37,9 +37,6 @@ class PythonRunner(CodeRunner):
             command.extend([
                 "prlimit",
                 f"--as={memory * 1024 * 1024}",
-                "--pid",
-                "$$",
-                "&&",
             ])
         command.append(self.python_cmd)
         command.append(source)
@@ -57,7 +54,7 @@ class PythonRunner(CodeRunner):
             stdout, stderr = run_result.stdout.strip(), run_result.stderr.strip()
             logger.debug(f"result stdout: {stdout}")
             logger.debug(f"result stderr: {stderr}")
-            if stderr.find("OutOfMemoryError") != -1:
+            if stderr.find("MemoryError") != -1:
                 return RunResult.oom()
             if stderr:
                 logger.debug(f"{stderr}")
