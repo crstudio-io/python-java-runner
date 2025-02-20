@@ -5,6 +5,7 @@ import pika
 
 from java_runner import JavaRunner
 from logger import get_logger
+from python_runner import PythonRunner
 from repository import TutorRepo
 from runner import Status
 
@@ -23,7 +24,9 @@ code_runner = JavaRunner(
     java_cmd=os.getenv("JAVA_CMD", "java"),
     javac_cmd=os.getenv("JAVAC_CMD", "javac")
 )
-
+# code_runner = PythonRunner(
+#     python_cmd="python3"
+# )
 
 def callback(ch, method, _, body):
     logger.debug("decode message to json")
@@ -38,11 +41,11 @@ def callback(ch, method, _, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
         logger.debug(f"{solution_id}: save code for compilation")
-        java_file = code_runner.save(f"build/{solution_id}", code_payload)
-        if not code_runner.prep(java_file):
+        source_file = code_runner.save(f"build/{solution_id}", code_payload)
+        if not code_runner.prep(source_file):
             logger.info(f"{solution_id}: compile error")
             session.update_solution(solution_id, 0, "ERROR")
-            code_runner.cleanup(java_file)
+            code_runner.cleanup(source_file)
             return
 
         logger.debug(f"{solution_id}: retrieve test cases")
@@ -55,7 +58,7 @@ def callback(ch, method, _, body):
             input_data = test_case.input
             logger.debug(input_data)
             run_result = code_runner.run(
-                source=java_file,
+                source=source_file,
                 input_data=str(test_case.input),
                 output_data=str(test_case.output),
                 timeout=restrictions[0],
@@ -74,7 +77,7 @@ def callback(ch, method, _, body):
         score = int(correct / total * 100)
         logger.info(f"{solution_id}: score - {score}")
         session.update_solution_results(solution_id, score, case_results)
-        code_runner.cleanup(java_file)
+        code_runner.cleanup(source_file)
 
 
 if __name__ == '__main__':
