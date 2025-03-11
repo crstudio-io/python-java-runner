@@ -70,7 +70,7 @@ def callback(ch, method, _, body):
             case_results.append(case_result(
                 sol_id=solution_id,
                 case_seq=idx,
-                status=run_result.status.name,
+                status=run_result.status.value,
                 details=run_result.stderr,
             ))
 
